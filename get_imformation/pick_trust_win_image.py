@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 from matplotlib import rcParams
 
-# Configure Matplotlib to use a font that supports English and Unicode symbols
+# Configure Matplotlib to use a font that supports English
 rcParams['font.sans-serif'] = ['Arial']
 rcParams['axes.unicode_minus'] = False
 
@@ -19,6 +20,9 @@ def analyze_investment_trust_performance_and_plot(file_path, ma_window=10, ma_mu
     # Read the CSV file
     data = pd.read_csv(file_path)
 
+    # Extract the filename from the file path
+    file_name = os.path.basename(file_path)
+
     # Ensure the 17th column is used as "Investment Trust Net Buying" and convert to numeric
     data["Investment_Trust_Net_Buying"] = pd.to_numeric(data.iloc[:, 16], errors="coerce")
 
@@ -33,11 +37,12 @@ def analyze_investment_trust_performance_and_plot(file_path, ma_window=10, ma_mu
                            (data["Investment_Trust_Net_Buying"] > buy_threshold)
 
     # Get the indices of intervention dates
-    intervention_dates = data[data["Intervention"]].index
+    intervention_indices = data[data["Intervention"]].index
+    intervention_dates = data.loc[data["Intervention"], "時間"]
 
     # Analyze short-term price changes for each intervention date
     all_changes = []
-    for idx in intervention_dates:
+    for idx in intervention_indices:
         price_changes = []
         for day in range(analysis_days):
             if idx + day < len(data):
@@ -53,12 +58,12 @@ def analyze_investment_trust_performance_and_plot(file_path, ma_window=10, ma_mu
 
     # Plot the performance for each intervention date
     plt.figure(figsize=(12, 6))
-    for col in changes_df.columns:
-        plt.plot(changes_df.index, changes_df[col], alpha=0.5, label=f"Intervention {col + 1}")
+    for i, col in enumerate(changes_df.columns):
+        plt.plot(changes_df.index, changes_df[col], alpha=0.7, label=intervention_dates.iloc[i])
 
     # Add plot labels and title
     plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
-    plt.title("10-Day Performance After Investment Trust Intervention", fontsize=14)
+    plt.title(f"10-Day Performance After Investment Trust Intervention\nFile: {file_name}", fontsize=14)
     plt.xlabel("Days", fontsize=12)
     plt.ylabel("Price Change (%)", fontsize=12)
     plt.xticks(rotation=45)
@@ -70,16 +75,13 @@ def analyze_investment_trust_performance_and_plot(file_path, ma_window=10, ma_mu
 # Execute the function and plot
 if __name__ == "__main__":
     # Specify the path to your CSV file
-    #file_path = r"db/6781.csv" #AES-KY
-    #file_path = r"db/4966.csv" #普瑞
-    file_path = r"db/4977.csv" #眾達
-    #file_path = r"db/2204.csv" #中華
+    file_path = r"db/1563.csv"
 
     # Call the function
     analyze_investment_trust_performance_and_plot(
         file_path=file_path,
         ma_window=10,          # Moving average window size
-        ma_multiplier=1.5,     # Multiplier for the MA condition
+        ma_multiplier=2,     # Multiplier for the MA condition
         buy_threshold=500,     # Minimum net buying threshold
         analysis_days=10       # Number of days to analyze after intervention
     )
